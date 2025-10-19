@@ -1,6 +1,5 @@
 """
-ASCII Chess Game - Full Featured Edition
-Complete two-player chess game with advanced features
+ASCII Chess Game - Full Featured Edition (Fixed)
 """
 
 import json
@@ -23,7 +22,7 @@ class ChessGame:
         self.en_passant_target = None
         self.use_unicode = True
         self.show_coordinates = True
-        self.time_white = 600  # 10 minutes per player
+        self.time_white = 600
         self.time_black = 600
         self.last_move_time = time.time()
         self.use_timer = False
@@ -95,7 +94,8 @@ class ChessGame:
         for i, (notation, _) in enumerate(self.move_history[-last_n:], 1):
             move_num = len(self.move_history) - last_n + i
             if move_num > 0:
-                print(f"  {move_num}. {notation}")
+                player = "White" if move_num % 2 == 1 else "Black"
+                print(f"  {move_num}. {player}: {notation}")
     
     def display_timer(self):
         """Display remaining time for both players"""
@@ -108,18 +108,18 @@ class ChessGame:
     def update_timer(self):
         """Update the timer for current player"""
         if not self.use_timer:
-            return
+            return None
         current_time = time.time()
         elapsed = current_time - self.last_move_time
         
         if self.current_player == 'white':
             self.time_white -= elapsed
             if self.time_white <= 0:
-                return 'black'  # Black wins on time
+                return 'black'
         else:
             self.time_black -= elapsed
             if self.time_black <= 0:
-                return 'white'  # White wins on time
+                return 'white'
         
         self.last_move_time = current_time
         return None
@@ -436,6 +436,13 @@ class ChessGame:
     
     def show_available_moves(self, pos):
         """Display available moves for a piece"""
+        piece = self.board[pos[0]][pos[1]]
+        if piece is None:
+            print("No piece at that position!")
+            return
+        
+        print(f"Piece at {self.position_to_notation(pos)}: {self.get_piece_name(piece)}")
+        
         moves = self.get_all_valid_moves(pos)
         if not moves:
             print("No valid moves available for this piece.")
@@ -526,7 +533,7 @@ class ChessGame:
             'to_pos': to_pos,
             'piece': piece,
             'captured': captured,
-            'en_passant_target': self.en_passant_target,
+            'en_passant_target_before': self.en_passant_target,
             'en_passant_capture': en_passant_capture,
             'promoted_to': promoted_to,
             'castled': piece.lower() == 'k' and abs(to_col - from_col) == 2
@@ -534,6 +541,9 @@ class ChessGame:
         
         # Record move
         self.move_history.append((notation, move_state))
+        
+        print(f"\n✓ Move made: {notation}")
+        print(f"  {self.get_piece_name(piece)} from {self.position_to_notation(from_pos)} to {self.position_to_notation(to_pos)}")
         
         # Switch player
         self.current_player = 'black' if self.current_player == 'white' else 'white'
@@ -612,10 +622,10 @@ class ChessGame:
         self.board[to_pos[0]][to_pos[1]] = captured
         
         # Restore en passant
-        self.en_passant_target = move_state['en_passant_target']
+        self.en_passant_target = move_state.get('en_passant_target_before')
         
         # Handle en passant capture
-        if move_state['en_passant_capture']:
+        if move_state.get('en_passant_capture'):
             direction = -1 if self.is_white_piece(piece) else 1
             self.board[to_pos[0] - direction][to_pos[1]] = move_state['en_passant_capture']
             if self.current_player == 'white':
@@ -631,7 +641,7 @@ class ChessGame:
                 self.captured_pieces['black'].remove(captured)
         
         # Handle castling undo
-        if move_state['castled']:
+        if move_state.get('castled'):
             if to_pos[1] > from_pos[1]:  # Kingside
                 rook_from = (from_pos[0], 5)
                 rook_to = (from_pos[0], 7)
@@ -790,8 +800,8 @@ class ChessGame:
         top_moves = valid_moves[:min(3, len(valid_moves))]
         from_pos, to_pos, _ = random.choice(top_moves)
         
-        print(f"\n🤖 AI moves: {self.position_to_notation(from_pos)} to {self.position_to_notation(to_pos)}")
-        time.sleep(1)  # Dramatic pause
+        print(f"\n🤖 AI is thinking...")
+        time.sleep(0.5)  # Dramatic pause
         
         self.make_move(from_pos, to_pos)
         return True
@@ -819,11 +829,11 @@ class ChessGame:
     
     def play(self):
         """Main game loop"""
-        print("╔" + "═" * 48 + "╗")
+        print("\n" + "╔" + "═" * 48 + "╗")
         print("║" + " " * 12 + "ASCII CHESS GAME" + " " * 20 + "║")
         print("╚" + "═" * 48 + "╝")
         
-        # Game setup
+        # Simplified game setup
         print("\n⚙️  Game Setup:")
         
         # Unicode pieces
@@ -850,10 +860,13 @@ class ChessGame:
         # Load saved game
         load_save = input("Load saved game? (y/n) [n]: ").strip().lower()
         if load_save == 'y':
-            self.load_game()
+            if self.load_game():
+                print("Game loaded successfully!")
+            else:
+                print("Starting new game...")
         
         print("\n" + "═" * 50)
-        print("🎮 CONTROLS:")
+        print("🎮 COMMANDS:")
         print("  • Move: e2 e4")
         print("  • Show moves: show e2")
         print("  • Undo: undo")
@@ -865,15 +878,13 @@ class ChessGame:
         self.last_move_time = time.time()
         
         while True:
-            os.system('cls' if os.name == 'nt' else 'clear')  # Clear screen
-            
-            print("\n" + "═" * 50)
+            print("\n" + "=" * 70)
             self.display_board()
             self.display_captured_pieces()
             self.display_move_history()
             if self.use_timer:
                 self.display_timer()
-            print("═" * 50)
+            print("=" * 70)
             
             # Check timer
             if self.use_timer:
@@ -905,8 +916,11 @@ class ChessGame:
                     break
                 continue
             
-            print(f"\n{self.current_player.upper()}'s turn")
-            move_input = input("► ").strip().lower()
+            print(f"\n💭 {self.current_player.upper()}'s turn")
+            move_input = input("► Enter command: ").strip().lower()
+            
+            if move_input == '':
+                continue
             
             if move_input == 'quit':
                 save_before_quit = input("Save game before quitting? (y/n): ").strip().lower()
@@ -923,21 +937,18 @@ class ChessGame:
                 print("• Bishop: Diagonal")
                 print("• Queen: Any direction")
                 print("• King: Any direction, 1 square")
-                print("• Castling: King moves 2 squares toward rook")
+                print("• Castling: King moves 2 squares toward rook (e.g., e1 g1)")
                 print("• En passant: Special pawn capture")
-                input("\nPress Enter to continue...")
                 continue
             
             if move_input == 'undo':
                 self.undo_move()
                 if self.ai_enabled:  # Undo AI move too
                     self.undo_move()
-                input("Press Enter to continue...")
                 continue
             
             if move_input == 'save':
                 self.save_game()
-                input("Press Enter to continue...")
                 continue
             
             if move_input.startswith('show '):
@@ -948,36 +959,35 @@ class ChessGame:
                         self.show_available_moves(pos)
                     else:
                         print("Invalid position!")
-                input("Press Enter to continue...")
                 continue
             
             parts = move_input.split()
             if len(parts) != 2:
-                print("Invalid input! Use format: e2 e4")
-                input("Press Enter to continue...")
+                print("❌ Invalid input! Use format: e2 e4")
                 continue
             
             from_pos = self.parse_position(parts[0])
             to_pos = self.parse_position(parts[1])
             
             if from_pos is None or to_pos is None:
-                print("Invalid position! Use format: e2 e4 (columns a-h, rows 1-8)")
-                input("Press Enter to continue...")
+                print("❌ Invalid position! Use format: e2 e4 (columns a-h, rows 1-8)")
                 continue
             
+            # Show what piece is being moved
+            piece = self.board[from_pos[0]][from_pos[1]]
+            if piece:
+                print(f"Attempting to move {self.get_piece_name(piece)}...")
+            
             if not self.is_valid_move(from_pos, to_pos):
-                print("Invalid move! Please try again.")
+                print("❌ Invalid move! Please try again.")
                 # Show available moves for selected piece
-                piece = self.board[from_pos[0]][from_pos[1]]
                 if piece and ((self.current_player == 'white' and self.is_white_piece(piece)) or
                              (self.current_player == 'black' and self.is_black_piece(piece))):
                     self.show_available_moves(from_pos)
-                input("Press Enter to continue...")
                 continue
             
             if self.would_be_in_check(from_pos, to_pos):
-                print("Invalid move! This would put your king in check.")
-                input("Press Enter to continue...")
+                print("❌ Invalid move! This would put your king in check.")
                 continue
             
             self.make_move(from_pos, to_pos)
