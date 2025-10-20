@@ -874,6 +874,7 @@ class ChessGame:
         print("  • Help: help")
         print("  • Quit: quit")
         print("═" * 50)
+        print(" " * 15 + "Created by wortex213433")
         
         self.last_move_time = time.time()
         
@@ -897,10 +898,12 @@ class ChessGame:
             if self.is_checkmate():
                 winner = 'Black' if self.current_player == 'white' else 'White'
                 print(f"\n🏆 CHECKMATE! {winner} wins!")
+                print(" " * 15 + "- wortex213433")
                 break
             
             if self.is_stalemate():
                 print(f"\n🤝 STALEMATE! Game is a draw!")
+                print(" " * 15 + "- wortex213433")
                 break
             
             # Check if in check
@@ -927,6 +930,7 @@ class ChessGame:
                 if save_before_quit == 'y':
                     self.save_game()
                 print("Thanks for playing! 👋")
+                print("Created by wortex213433\n")
                 break
             
             if move_input == 'help':
@@ -939,6 +943,7 @@ class ChessGame:
                 print("• King: Any direction, 1 square")
                 print("• Castling: King moves 2 squares toward rook (e.g., e1 g1)")
                 print("• En passant: Special pawn capture")
+                print(" " * 15 + "Created by wortex213433")
                 continue
             
             if move_input == 'undo':
