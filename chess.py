@@ -831,6 +831,7 @@ class ChessGame:
         """Main game loop"""
         print("\n" + "╔" + "═" * 48 + "╗")
         print("║" + " " * 12 + "ASCII CHESS GAME" + " " * 20 + "║")
+        print("║" + " " * 12 + "by wortex213433" + " " * 21 + "║")
         print("╚" + "═" * 48 + "╝")
         
         # Simplified game setup
